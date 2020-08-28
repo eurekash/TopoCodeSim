@@ -1,4 +1,5 @@
 #include "circuit.h"
+#include <cassert>
 
 Wire :: Wire() {
 	x = z = 0;
@@ -11,6 +12,14 @@ void Gate :: backward() {}
 void Gate :: reset_output() {}
 
 Noise :: Noise(): prob(0)  {}
+
+int Noise :: num_errors() {
+	return prob.size();
+}
+
+Set Noise :: excitations(int)  {
+	return Set();
+}
 
 int Noise :: sample() {
 	double p = Random::get_instance() -> random_number();
@@ -25,7 +34,161 @@ int Noise :: sample() {
 
 void Noise :: apply() {}
 
+TwoQubitDepo :: TwoQubitDepo(Wire *q1, Wire *q2, double p) {
+	this->q1 = q1;
+	this->q2 = q2;
+	for (int i = 0; i < 15; i++) {
+		prob.emplace_back(p / 15);
+	}
+}
 
+
+Set TwoQubitDepo :: excitations(int t) 
+{
+	assert(t < 15);
+	Set result;
+	switch (t / 4) {
+		case 0:
+			result = q1->excite_x;
+			break;
+		case 1:
+			result = XOR(q1->excite_x, q1->excite_z);
+			break;
+		case 2:
+			result = q1->excite_z;
+			break;
+		default:
+			break;
+	}
+
+	switch (t % 4) {
+		case 0:
+			result = XOR(result, q2->excite_x);
+			break;
+		case 1:
+			result = XOR(result, XOR(q2->excite_x, q2->excite_z));
+			break;
+		case 2:
+			result = XOR(result, q2->excite_z);
+			break;
+		default:
+			break;
+	}
+
+	return result;
+}
+
+void TwoQubitDepo :: apply() {
+	int t = sample();
+	switch (t / 4) {
+		case 0: 
+			q1->x ^= 1;
+			break;
+		case 1:
+			q1->x ^= 1;
+			q1->z ^= 1;
+			break;
+		case 2:
+			q1->z ^= 1;
+			break;
+		default:
+			break;
+	}
+
+	switch (t % 4) {
+		case 0: 
+			q2->x ^= 1;
+			break;
+		case 1:
+			q2->x ^= 1;
+			q2->z ^= 1;
+			break;
+		case 2:
+			q2->z ^= 1;
+			break;
+		default:
+			break;
+	}
+}
+
+
+OneQubitDepo :: OneQubitDepo(Wire *q, double p) {
+	this->q = q;
+	for (int i = 0; i < 3; i++) {
+		prob.emplace_back(p / 3);
+	}
+}
+
+void OneQubitDepo :: apply() {
+	int t = sample();
+	switch (t) {
+		case 0:
+			q->x ^= 1;
+			break;
+		case 1:
+			q->x ^= 1;
+			q->z ^= 1;
+			break;
+		case 2:
+			q->z ^= 1;
+			break;
+		default:
+			break;
+	}
+}
+
+Set OneQubitDepo :: excitations(int t) {
+	assert(t < 3);
+	Set result;
+	switch (t) {
+		case 0:
+			result = q->excite_x;
+			break;
+		case 1:
+			result = XOR(q->excite_x, q->excite_z);
+			break;
+		case 2:
+			result = q->excite_z;
+			break;
+		default:
+			break;
+	}
+	return result;
+}
+
+PhaseFlip :: PhaseFlip(Wire *q, double p) 
+{
+	this->q = q;
+	prob.emplace_back(p);
+}
+
+void PhaseFlip :: apply() {
+	if (sample() == 0) {
+		q->z ^= 1;
+	}
+}
+
+Set PhaseFlip :: excitations(int t) {
+	assert(t == 0);
+	return q->excite_z;
+}
+
+BitFlip :: BitFlip(Wire *q, double p) {
+	this->q = q;
+	prob.emplace_back(p);
+}
+
+Set BitFlip :: excitations(int t) {
+	assert(t == 0);
+	return q->excite_x;
+}
+
+
+void BitFlip :: apply() {
+	if (sample() == 0) {
+		q->x ^= 1;
+	}
+}
 Set Excitation :: XOR(const Set &A, const Set &B) {
 	Set result = A;
 	for (auto &p: B) {

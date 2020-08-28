@@ -51,26 +51,36 @@ struct Noise {
 	Noise();
 	std::vector<double> prob;
 	int sample();
+	int num_errors();
+	virtual Set excitations(int);
 	virtual void apply();
 };
 
 struct TwoQubitDepo: Noise {
 	Wire *q1, *q2;
+	TwoQubitDepo(Wire *q1, Wire *q2, double p);
+	Set excitations(int t) override;
 	void apply() override;
 };
 
 struct OneQubitDepo: Noise {
 	Wire *q;
+	OneQubitDepo(Wire *q, double p);
+	Set excitations(int t) override;
 	void apply() override;
 };
 
 struct PhaseFlip: Noise {
 	Wire *q;
+	PhaseFlip(Wire *q, double p);
+	Set excitations(int t)  override;
 	void apply() override;
 };
 
 struct BitFlip: Noise {
 	Wire *q;
+	BitFlip(Wire *q, double p);
+	Set excitations(int t)  override;
 	void apply() override;
 };
 

@@ -1,4 +1,4 @@
-#include "circuit.h"
+#include "extractor.h"
 #include <map>
 #include <utility>
 
@@ -8,7 +8,7 @@ class ToricCode {
 public:
 	ToricCode(int n, double p);
 	virtual void build_circuit();
-	void build_decoder_one_round();
+	void build_decoder_graph_one_round();
 
 protected:
 	int n, n2;

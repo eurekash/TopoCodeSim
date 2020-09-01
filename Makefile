@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS= -O2 -std=c++11
+CXXFLAGS= -O2 -std=c++11 -g
 OBJFILES= main.o random.o circuit.o extractor.o toric_code.o
 TARGET = simulator
 

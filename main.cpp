@@ -2,20 +2,13 @@
 #include <algorithm>
 #include <vector>
 #include <iterator>
+#include "toric_code.h"
 
 int main() {
-    std::vector<int> v1 {1, 2, 5, 5, 5, 9};
-    std::vector<int> v2 {2, 5, 7};
-    std::vector<int> v3 {2, 5, 7};
-
-    std::set_difference(v1.begin(), v1.end(), v2.begin(), v2.end(),
-                        std::inserter(v2, v2.begin()));
-
-    for (auto i : v1) std::cout << i << ' ';
-    std::cout << "minus ";
-    for (auto i : v3) std::cout << i << ' ';
-    std::cout << "is: ";
-
-    for (auto i : v2) std::cout << i << ' ';
-    std::cout << '\n';
+	int n = 5;
+	double p = 1.5e-3;
+	ToricCodeBareAncilla model(n, p);
+	model.build_circuit();
+	model.build_decoder_graph_one_round();
+	return 0;
 }

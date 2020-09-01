@@ -1,7 +1,9 @@
 #include "circuit.h"
+#include "flags.h"
 #include <cassert>
 #include <algorithm>
 #include <iterator>
+
 
 template <typename T>
 T XOR(const T &A, const T &B) {
@@ -29,7 +31,7 @@ int Noise :: num_errors() {
 	return prob.size();
 }
 
-std::vector<pii> Noise :: excitations(int)  {
+std::vector<pii> Noise :: excitations(int t)  {
 	return std::vector<pii>();
 }
 
@@ -62,6 +64,7 @@ TwoQubitDepo :: TwoQubitDepo(Wire *q1, Wire *q2, double p) {
 
 std::vector<pii> TwoQubitDepo :: excitations(int t) 
 {
+	printf("TwoQubitDepo :: excitations(%d): %p, %p\n", t, q1, q2);
 	assert(t < 15);
 	std::vector<pii> result;
 	switch (t / 4) {

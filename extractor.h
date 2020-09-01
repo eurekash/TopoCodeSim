@@ -37,11 +37,10 @@ private:
 	Wire **anc_z_start;
 	Wire **anc_z_end;
 
-	std::vector<Gate> gates;
+	std::vector<Gate*> gates;
 
-	std::vector<Noise> errors;
-	std::vector<Noise>::iterator error_pointer;
-	int error_id;
+	std::vector<Noise*> errors;
+	int err_id, err_choice;
 
 	std::vector<int>  syndrome_bit_x;
 	std::vector<int>  syndrome_bit_z;

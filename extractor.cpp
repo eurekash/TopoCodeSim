@@ -1,5 +1,6 @@
 #include <vector>
 #include "extractor.h"
+#include "flags.h"
 
 template <typename T>
 T XOR(const T &A, const T &B) {
@@ -44,9 +45,9 @@ void Extractor :: add_CNOT(int type_ctrl, int id_ctrl, int type_target, int id_t
 				  					anc_z_end[id_ctrl]; 
 	Wire *&target = (type_target == 0)? data_end[id_target]: 
 					(type_target == 1)? anc_x_end[id_target]: 
-										anc_z_end[id_ctrl];
+										anc_z_end[id_target];
 
-	gates.emplace_back(CNOT(ctrl, target));
+	gates.emplace_back(new CNOT(ctrl, target));
 }
 
 void Extractor :: add_2qubit_depo(int type1, int id1, int type2, int id2, double p) {
@@ -58,14 +59,14 @@ void Extractor :: add_2qubit_depo(int type1, int id1, int type2, int id2, double
 			   (type2 == 1)? anc_x_end[id2]:
 			   				 anc_z_end[id2];
 
-	errors.emplace_back(TwoQubitDepo(q1, q2, p));
+	errors.emplace_back(new TwoQubitDepo(q1, q2, p));
 }
 
 void Extractor :: add_1qubit_depo(int type, int id, double p) {
 	Wire *q = (type == 0)? data_end[id]:
 			  (type == 1)? anc_x_end[id]:
 			   			   anc_z_end[id];
-	errors.emplace_back(OneQubitDepo(q, p));
+	errors.emplace_back(new OneQubitDepo(q, p));
 }
 
 void Extractor :: add_phase_flip(int type, int id, double p) {
@@ -73,7 +74,7 @@ void Extractor :: add_phase_flip(int type, int id, double p) {
 			  (type == 1)? anc_x_end[id]:
 			   			   anc_z_end[id];
 
-	errors.emplace_back(PhaseFlip(q, p));
+	errors.emplace_back(new PhaseFlip(q, p));
 }
 
 
@@ -82,7 +83,7 @@ void Extractor :: add_bit_flip(int type, int id, double p) {
 			  (type == 1)? anc_x_end[id]:
 			   			   anc_z_end[id];
 
-	errors.emplace_back(BitFlip(q, p));
+	errors.emplace_back(new BitFlip(q, p));
 }
 
 
@@ -95,6 +96,10 @@ void Extractor :: set_syndrome_bit_z(int id_anc_qubit) {
 }
 
 void Extractor :: back_propagation() {
+#ifdef DEBUG
+	printf("extractor::back_propagation()\n");
+#endif
+
 	//Step 1
 	for (int i = 0; i < syndrome_bit_x.size(); i++) {
 		anc_x_end[syndrome_bit_x[i]]->excite_z.emplace_back(std::make_pair(0x2, i));  //bitmask = 10
@@ -103,8 +108,9 @@ void Extractor :: back_propagation() {
 		anc_z_end[syndrome_bit_z[i]]->excite_x.emplace_back(std::make_pair(0x3, i));  //bitmask = 11
 	}
 
-	for (std::vector<Gate>::reverse_iterator g = gates.rbegin(); g != gates.rend(); ++g) {
-		g->backward();
+	//Step 1
+	for (int i = gates.size()-1; i>=0; i--) {
+		gates[i]->backward();
 	}
 
 	//Step 0
@@ -131,21 +137,24 @@ void Extractor :: back_propagation() {
 		anc_z_end[syndrome_bit_z[i]]->excite_x.emplace_back(std::make_pair(0x1, i));  //bitmask = 01
 	}
 
-	for (std::vector<Gate>::reverse_iterator g = gates.rbegin(); g != gates.rend(); ++g) {
-		g->backward();
+	for (int i = gates.size()-1; i>=0; i--) {
+		gates[i]->backward();
 	}
 }
 
 void Extractor :: execute() {
 	//clear all the Wires 
-	for (auto &g: gates)  g.reset_output();
+	for (auto &g: gates)  g->reset_output();
 
 }
 
 void Extractor :: init_enumerator() {
+#ifdef DEBUG
+	printf("extractor::init_enumerator()\n");
+#endif
 	back_propagation();
-	error_pointer = errors.begin();
-	error_id = 0;
+	err_id = 0;
+	err_choice = 0;
 }
 
 bool Extractor::enumerate(
@@ -155,10 +164,14 @@ bool Extractor::enumerate(
 		std::vector<int> &Z1,
 		double &p )
 {
-	if (error_pointer == errors.end())  return false;
+#ifdef DEBUG
+	printf("extractor::enumerate()\n");
+#endif
 
-	p = error_pointer->probability(error_id);
-	std::vector<pii> S = error_pointer->excitations(error_id);
+	if (err_id == errors.size())  return false;
+
+	p = errors[err_id]->probability(err_choice);
+	std::vector<pii> S = errors[err_id]->excitations(err_choice);
 	
 
 	X0.clear(), X1.clear();
@@ -184,10 +197,13 @@ bool Extractor::enumerate(
 	X1 = XOR(X0, X1);
 	Z1 = XOR(Z0, Z1);
 
-	if (++error_id == error_pointer->num_errors()) {
-		++error_pointer;
-		error_id = 0;
+	if (++err_choice == errors[err_id]->num_errors()) {
+		++err_id;
+		err_choice = 0;
 	}
+#ifdef DEBUG
+	printf("extraction::enumerate() ends.\n");
+#endif
 	return true;
 }
 

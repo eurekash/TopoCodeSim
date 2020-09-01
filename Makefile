@@ -1,7 +1,7 @@
 CXX=g++
 CXXFLAGS= -O2 -std=c++11
-OBJFILES= main.o
-TARGET = ToricCode
+OBJFILES= main.o random.o circuit.o extractor.o toric_code.o
+TARGET = simulator
 
 all: $(TARGET)
 

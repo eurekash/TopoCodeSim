@@ -142,10 +142,49 @@ void Extractor :: back_propagation() {
 	}
 }
 
-void Extractor :: execute() {
+void Extractor :: execute(	std::vector<int> &data_x, 
+							std::vector<int> &data_z,
+						    std::vector<int> &anc_x,
+							std::vector<int> &anc_z,
+	   						bool noisy	) 
+{
 	//clear all the Wires 
 	for (auto &g: gates)  g->reset_output();
 
+	//initialize the data qubit
+	for (int i = 0; i < data_block_size; i++) {
+		data_start[i]->x = data_x[i];
+		data_start[i]->z = data_z[i];
+	}
+
+	//initialize the ancilla qubit
+	for (int i = 0; i < anc_x_block_size; i++) {
+		anc_x_start[i]->x = anc_x_start[i]->z = 0;
+	}
+	for (int i = 0; i < anc_z_block_size; i++) {
+		anc_z_start[i]->x = anc_z_start[i]->z = 0;
+	}
+
+	//add noise
+	if (noisy) {
+		for (auto &err: errors)  err->apply();
+	}
+
+	//forward
+	for (auto &g: gates)   g->forward();
+
+	//readout
+	for (int i = 0; i < data_block_size; i++) {
+		data_x[i] = data_end[i]->x;
+		data_z[i] = data_end[i]->z;
+	}
+
+	for (int i = 0; i < syndrome_bit_x.size(); i++) {
+		anc_x[i] = anc_x_end[syndrome_bit_x[i]]->z;
+	}
+	for (int i = 0; i < syndrome_bit_z.size(); i++) {
+		anc_z[i] = anc_z_end[syndrome_bit_z[i]]->x;
+	}
 }
 
 void Extractor :: init_enumerator() {

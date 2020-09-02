@@ -1,4 +1,5 @@
 #include "circuit.h"
+#include <vector>
 
 class Extractor {
 
@@ -13,7 +14,12 @@ public:
 	void add_bit_flip(int type, int id, double p);
 	void add_phase_flip(int type, int id, double p);
 
-	void execute();
+	void execute( 	std::vector<int> &data_x,
+					std::vector<int> &data_z,
+					std::vector<int> &anc_x,
+					std::vector<int> &anc_z,
+					bool noisy
+					);
 
 	void init_enumerator();
 	bool enumerate(std::vector<int> &X0,

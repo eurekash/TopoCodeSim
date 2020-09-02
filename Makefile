@@ -1,6 +1,6 @@
 CXX=g++
 CXXFLAGS= -O2 -std=c++11 -g
-OBJFILES= main.o random.o circuit.o extractor.o toric_code.o
+OBJFILES= main.o random.o circuit.o extractor.o toric_code.o decoder.o
 TARGET = simulator
 
 all: $(TARGET)

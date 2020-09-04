@@ -5,10 +5,19 @@
 template <typename T>
 T XOR(const T &A, const T &B) {
 	T result;
-	std::set_symmetric_difference(
-			A.begin(), A.end(),
-			B.begin(), B.end(),
-			std::back_inserter(result));
+	auto pa = A.begin();
+	auto pb = B.begin();
+	while (pa != A.end() && pb != B.end()) {
+		if (*pa == *pb) {
+			++pa,  ++pb;
+		} else if (*pa < *pb) {
+			result.emplace_back(*pa);  ++pa;
+		} else {
+			result.emplace_back(*pb);  ++pb;
+		}
+	}
+	for ( ;pa != A.end(); result.emplace_back(*pa), ++pa);
+	for ( ;pb != B.end(); result.emplace_back(*pb), ++pb);
 	return result;
 }
 

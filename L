@@ -144,10 +144,12 @@ bool ToricCode :: simulate()
 
 	for (int o = 0; o < 2; o++) {
 		decoder[o]->reset();
-		data[o].resize(2*n2, 0);
-		anc[o].resize(n2, 0);
-		anc_last_round[o].resize(n2, 0);
+		data[o].resize(2*n2, false);
+		anc[o].resize(n2, false);
+		anc_last_round[o].resize(n2, false);
 	}
+
+	int counter[2] = {0,0};
 
 	for (int t = 0; t <= n; t++) {
 		extractor->execute(data[0], data[1], anc[0], anc[1], t < n);
@@ -155,6 +157,7 @@ bool ToricCode :: simulate()
 			for (int i = 0; i < n2; i++) {
 				if (anc_last_round[o][i] ^ anc[o][i]) {
 					decoder[o]->excite(I(n2, t, i));
+					++counter[o];
 				}
 			}
 			anc_last_round[o] = anc[o];

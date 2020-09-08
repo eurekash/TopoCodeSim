@@ -212,9 +212,6 @@ bool Extractor::enumerate(
 		std::vector<int> &Z1,
 		double &p )
 {
-#ifdef DEBUG
-	printf("extractor::enumerate()\n");
-#endif
 
 	if (err_id == errors.size())  return false;
 

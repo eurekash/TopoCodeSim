@@ -18,7 +18,7 @@ using std :: tuple;
 
 Decoder :: Decoder (const std::vector <bool>& _is_boundary) :
 is_boundary ( _is_boundary ),
-num_vertices ( _is_boundary.size() ), 
+num_vertices ( _is_boundary.size() ),  num_edges(0),
 defect ( num_vertices ),  ndefects ( num_vertices ),  open ( num_vertices ),
 start(0), end(0), weight(0), cover(0), oppo(0),
 prt_synd_valid( num_vertices ), size_synd_valid( num_vertices ),
@@ -53,6 +53,7 @@ bool Decoder :: odd(int u) {
 void Decoder :: reset() {
     std::sort(edge_list.begin(), edge_list.end(), std::greater<std::tuple<double, int, int, int> > ());
     //reset lists of active clusters
+
     for (int i = 0; i < num_edges; i++) {
         list_node *h = active_heads[i];
         h -> left = h -> right = h;

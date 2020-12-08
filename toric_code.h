@@ -17,7 +17,7 @@ protected:
 	void build_decoder_graph_one_round();
 
 	int n, n2;
-	int T;
+	int T, D;
 	int offset_per_round;
 	double p;
 	Extractor *extractor;
@@ -50,8 +50,8 @@ public:
 
 class ToricCodeBlock: public ToricCode {
 public:
-	ToricCodeBlock(int k1, int k2, double p);
+	ToricCodeBlock(int m, int n, int D, int offset, double p);
 	void build_circuit() override;
 private:
-	int k1, k2, m, T;
+	int m, T;
 };

@@ -6,16 +6,18 @@
 //#include "toric_ancilla_block.h"
 
 int main(int argc, char **argv) {
+	//int , n, offset;
 	int k1, k2;
-	int T;
 	double p;
+	int T;
 
 	sscanf(argv[1], "%d", &k1);
 	sscanf(argv[2], "%d", &k2);
 	sscanf(argv[3], "%lf", &p);
 	sscanf(argv[4], "%d", &T);
 	
-	ToricCodeBlock model(k1, k2, p);
+	int m = 3*k1, n = m*k2, nround = 2*n;
+	ToricCodeBlock model(m, n, nround, k1, p);
 	model.build_circuit();
 	model.build_decoder_graph();
 

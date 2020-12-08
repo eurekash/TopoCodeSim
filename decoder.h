@@ -12,10 +12,12 @@
 #include <tuple>
 #include <queue>
 #include <list>
+#include <functional>
 
 using std::vector;
 using std::pair;
 using std::tuple;
+using std::queue;
 
 struct list_node {
     int         value;
@@ -30,9 +32,12 @@ public:
     void    add_edge(int u, int v, double w);
     void    excite(int u);      
     void    reset();
+	void 	init_shortest_path(int n2);
+	bool 	shortest_path(int newNode, int dist_threshold);
     vector < pair<int, int> > decode();
 	double	total_time;
 	int     counter;
+
 
 private:
 
@@ -66,7 +71,6 @@ private:
     vector <int>  	size_peel;
 
     //clusters
-    void            print_clusters();
 
     void            insert_edge (int e, int c);
     void 			remove_edge (int e);
@@ -78,7 +82,6 @@ private:
     vector <list_node*>     cluster_heads;
     vector <int>            cluster_size;
 
-    void            print_active_list();
     void            activate(int c);
     void            deactivate(int c);
     vector <list_node*>     vertex_nodes;
@@ -94,6 +97,10 @@ private:
     vector < pair<int, int> > result;
     vector <bool> visited;
 
+	//shortest path
+	queue <int> Q;
+	vector <int>  dist;
+	vector < vector<int> >  adjList;
 };
 
 #endif //COMPASS_V2_DECODER_H

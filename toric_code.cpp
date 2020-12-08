@@ -35,17 +35,15 @@ inline int D(int n, int i, int j) {
 
 inline int offset(int n, int u, int offset) {
 	int i = u / n, j = u % n;
-	//printf("(%d,%d)---%d-->", i,j,offset);
 	i = (i + offset) % n;
 	j = (j + offset) % n;
-	//printf("(%d,%d)\n",i,j);
 	return I(n, i, j);
 }
 
-ToricCode :: ToricCode(int n, double p, int nrounds, int offset_per_round) {
+ToricCode :: ToricCode(int n, double p, int D, int offset_per_round) {
 	this->n = n;
 	this->p = p;
-	this->T = nrounds;
+	this->D = D;
 	this->offset_per_round = offset_per_round;
 	n2 = n * n;
 	extractor = NULL;
@@ -72,12 +70,10 @@ ToricCodeCluster :: ToricCodeCluster(int n, double p)
 }
 */
 
-ToricCodeBlock :: ToricCodeBlock(int k1, int k2, double p)
-	: ToricCode(3*k1*k2, p, 5*k2, k1)
+ToricCodeBlock :: ToricCodeBlock(int m, int n, int D, int offset, double p)
+	: ToricCode(n, p, D, offset)
 {
-	this->k1 = k1;
-	this->k2 = k2;
-	this->m  = 3*k1;
+	this->m = m;
 }
 
 void ToricCode :: build_decoder_graph_one_round() {
@@ -99,9 +95,9 @@ void ToricCode :: build_decoder_graph_one_round() {
 			assert((E0[t].size() + E1[t].size()) % 2 ==0);
 			if (E0[t].size() + E1[t].size() == 0)  continue;
 			if (E0[t].size() == 2 && E1[t].size() == 2) {
-				u = E0[t][0],  v = E0[t][1],  w = std::make_pair(1, v);
+				u = E0[t][0],  v = E0[t][1],  w = std::make_pair(0, v);
 				edges[t][u][w] = B(edges[t][u][w], p_err);
-				u = E1[t][0],  v = E1[t][1],  w = std::make_pair(1, v);
+				u = E1[t][0],  v = E1[t][1],  w = std::make_pair(0, v);
 				edges[t][u][w] = B(edges[t][u][w], p_err);
 			} else if (E0[t].size() == 4) {
 				u = E0[t][0],  v = E0[t][1],  w = std::make_pair(0, v);
@@ -131,20 +127,24 @@ void ToricCode :: build_decoder_graph()
 {
 	build_decoder_graph_one_round();
 	for (int o = 0; o < 2; o++) {
-		decoder[o] = new Decoder( std::vector<bool> ( (T+1)*n2, false ) );
-		for (int t = 0; t <= T; t++) {
+		decoder[o] = new Decoder( std::vector<bool> ( (D+1)*n2, false ) );
+		decoder[o]->init_shortest_path(n2);
+		for (T = 0; ; T++) {
+			bool success = decoder[o]->shortest_path(T*n2, D);
+			int offset_t = T * offset_per_round;
 			for (int u = 0; u < n2; u++) {
-				int u1 = offset(n, u, t*offset_per_round);
+				int u1 = offset(n, u, offset_t);
 				for (auto &p: edges[o][u]) {
 					int tp = p.first.first;
 					int v  = p.first.second;
 					double w = H(p.second);
-					int v1 = offset(n, v, t*offset_per_round);
-					if (t+tp <= T) {
-						decoder[o]->add_edge(I(n2, t, u1), I(n2, t+tp, v1), w);
+					int v1 = offset(n, v, offset_t);
+					if (tp == 0 || !success) {
+						decoder[o]->add_edge(I(n2, T, u1), I(n2, T+tp, v1), w);
 					}
 				}
 			}
+			if (success)  break;
 		}
 	}
 }
@@ -166,10 +166,10 @@ bool ToricCode :: simulate()
 
 	for (int t = 0; t <= T; t++) {
 		//Offset the torus
-		
+		int offset_t = (n-t*offset_per_round%n)%n;
 		for (int o = 0; o < 2; o++) {
 			for (int i = 0; i < n2; i++) {
-				int j = offset(n, i, t*offset_per_round);
+				int j = offset(n, i, offset_t);
 				data_offset[o][j] = data[o][i];
 				data_offset[o][j+n2] = data[o][i+n2];
 			}
@@ -178,7 +178,7 @@ bool ToricCode :: simulate()
 		//shift back
 		for (int o = 0; o < 2; o++) {
 			for (int i = 0; i < n2; i++) {
-				int j = offset(n, i, t*offset_per_round);
+				int j = offset(n, i, offset_t);
 				data[o][i] = data_offset[o][j];
 				data[o][i+n2] = data_offset[o][j+n2];
 				anc[o][i] = anc_offset[o][j];
@@ -193,6 +193,7 @@ bool ToricCode :: simulate()
 			anc_last_round[o] = anc[o];
 		}
 	}
+	
 
 	//check logical errors
 	int cut_hori = 1,  cut_vert = n-1;
@@ -227,10 +228,11 @@ bool ToricCode :: simulate()
 }
 
 void ToricCodeBlock :: build_circuit() {
+	int n_anc_qubits = 2*m*(m+1)*(n/m)*(n/m);
 	extractor = new Extractor(
 			2*n2,  //2n^2 data qubits
-			n2 + 2*m*(m+1)*k2*k2,  //x ancilla qubits
-			n2 + 2*m*(m+1)*k2*k2   //z ancilla qubits
+			n2 + n_anc_qubits,  //x ancilla qubits
+			n2 + n_anc_qubits   //z ancilla qubits
 		);
 
 
@@ -239,14 +241,22 @@ void ToricCodeBlock :: build_circuit() {
 		extractor->set_syndrome_bit_z(i);
 	}
 
+	
+	//init ancilla error
+	
+	for (int i = 0; i < n_anc_qubits; i++) {
+		extractor->add_1qubit_depo(1, i+n2, p);
+		extractor->add_1qubit_depo(2, i+n2, p);
+	}
+
 	//Z stabilizer measurements
 
 	int B = m*(m+1);
 
-	for (int bx = 0, offsetx = 0, offset_anc = n2; bx < k2; bx++, offsetx += m) {
+	for (int offsetx = 0, offset_anc = n2; offsetx < n; offsetx += m) {
 		//offset_anc: offset of ancilla qubit id
 		//first n2 qubits are syndrome bits
-		for (int by = 0, offsety = 0; by < k2; by++, offsety += m) {
+		for (int offsety = 0; offsety < n; offsety += m) {
 			//horizontal
 			for (int x = 0; x <= m; x++) {
 				for (int y = 0; y < m; y++) {
@@ -288,10 +298,9 @@ void ToricCodeBlock :: build_circuit() {
 		}
 	}
 
-	//puts("----------------------------------------------------");
 	//X stabilizer measurements
-	for (int bx = 0, offsetx = 0, offset_anc = n2; bx < k2; bx++, offsetx += m) {
-		for (int by = 0, offsety = 0; by < k2; by++, offsety += m) {
+	for (int offsetx = 0, offset_anc = n2; offsetx < n; offsetx += m) {
+		for (int offsety = 0; offsety < n; offsety += m) {
 			//vertical
 			for (int x = 0; x <= m; x++) {
 				for (int y = 0; y < m; y++) {
@@ -327,6 +336,13 @@ void ToricCodeBlock :: build_circuit() {
 			}
 			offset_anc += B;
 		}
+	}
+
+	//measurement error
+	
+	for (int i = 0; i < n_anc_qubits; i++) {
+		extractor->add_1qubit_depo(1, i+n2, p);
+		extractor->add_1qubit_depo(2, i+n2, p);
 	}
 }
 

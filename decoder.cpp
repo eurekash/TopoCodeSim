@@ -28,6 +28,8 @@ edge_nodes(0), active_heads(0), active( num_vertices ),
 edge_list(0),  MST_edges( num_vertices ),  visited( num_vertices ),
 cluster_heads( num_vertices, NULL ),
 vertex_nodes( num_vertices, NULL ),
+dist( num_vertices, -1 ),
+adjList( num_vertices, vector<int>() ),
 total_time(0)
 {
     counter = 0;
@@ -102,6 +104,7 @@ void Decoder :: add_edge(int u, int v, double w) {
     oppo.emplace_back(e_vu);
     edge_nodes.emplace_back(new list_node(e_uv));
     active_heads.emplace_back(new list_node());
+	adjList[u].emplace_back(v);
 
 
     start.emplace_back(v);
@@ -111,6 +114,7 @@ void Decoder :: add_edge(int u, int v, double w) {
     oppo.emplace_back(e_uv);
     edge_nodes.emplace_back(new list_node(e_vu));
     active_heads.emplace_back(new list_node());
+	adjList[v].emplace_back(u);
 }
 
 void Decoder :: insert_edge(int e, int c) {
@@ -355,29 +359,23 @@ bool Decoder::DFS(int u, bool& fuse_with_boundary) {
     return flag;
 }
 
-
-void Decoder :: print_clusters() {
-    printf("call print_clusters()\n----------------------------------------------------------------------------------\n");
-    for (int u = 0; u < num_vertices; u++) {
-        if (cluster_size[u] == 0)  continue;
-        printf("%d (size = %d, ndefects = %d, open = %d):\n", u, cluster_size[u], ndefects[u], open[u]?1:0);
-        for (list_node *h = cluster_heads[u], *p = h->right; p != h; p = p->right) {
-            printf("%d ", p->value);
-        }
-        puts("");
-    }
-    printf("----------------------------------------------------------------------------------\n");
+void Decoder :: init_shortest_path(int n2) {
+	for (int i = 0; i < n2; i++) {
+		dist[i] = 0;
+		Q.push(i);
+	}
 }
 
-void Decoder :: print_active_list() {
-    printf("call print_active_list()\n----------------------------------------------------------------------------------\n");
-    for (int s = 0; s < num_edges; s++) {
-        list_node *h = active_heads[s];
-        if (h->right == h)  continue;
-        printf("%d:", s);
-        for (list_node *p = h->right; p != h; p = p->right)
-            printf(" %d", p->value);
-        puts("");
-    }
-    printf("----------------------------------------------------------------------------------\n");
+bool Decoder :: shortest_path(int newNode, int dist_threshold) {
+	while (!Q.empty() && Q.front() < newNode) {
+		int u = Q.front();
+		Q.pop();
+		for (auto &v: adjList[u]) {
+			if (dist[v] == -1) {
+				dist[v] = dist[u] + 1;
+				Q.push(v);
+			}
+		}
+	}
+	return dist[Q.front()] >= dist_threshold;
 }

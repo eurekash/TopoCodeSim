@@ -377,5 +377,5 @@ bool Decoder :: shortest_path(int newNode, int dist_threshold) {
 			}
 		}
 	}
-	return dist[Q.front()] >= dist_threshold;
+	return Q.empty() || dist[Q.front()] >= dist_threshold;
 }

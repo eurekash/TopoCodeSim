@@ -55,3 +55,9 @@ public:
 private:
 	int m, T;
 };
+
+class ToricCodeSteane: public ToricCode {
+public:
+	ToricCodeSteane(int n, double p);
+	void build_circuit() override;
+};

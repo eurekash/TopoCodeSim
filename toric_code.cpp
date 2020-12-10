@@ -76,6 +76,11 @@ ToricCodeBlock :: ToricCodeBlock(int m, int n, int D, int offset, double p)
 	this->m = m;
 }
 
+ToricCodeSteane :: ToricCodeSteane(int n, double p):
+	ToricCode(n, p, 1, 0)
+{
+}
+
 void ToricCode :: build_decoder_graph_one_round() {
 	std::vector<int> E0[2], E1[2];
 	double p_err;
@@ -309,6 +314,7 @@ void ToricCodeBlock :: build_circuit() {
 					//printf("[X VERTICAL] data: %d(%d,%d), ancilla: %d(%d,%d)\n", dat_id, (x+offsetx)%n, (y+offsety)%n, anc_id, x, y);
 					extractor->add_CNOT(1, anc_id, 0, dat_id);
 					extractor->add_2qubit_depo(1, anc_id, 0, dat_id, p);
+
 					if (x > 0) {
 						extractor->add_CNOT(1, I(n, x+offsetx-1, y+offsety), 1, anc_id);
 					}
@@ -340,14 +346,74 @@ void ToricCodeBlock :: build_circuit() {
 
 	//measurement error
 	
+	/*
 	for (int i = 0; i < n_anc_qubits; i++) {
 		extractor->add_1qubit_depo(1, i+n2, p);
 		extractor->add_1qubit_depo(2, i+n2, p);
 	}
+	*/
 }
 
+void ToricCodeSteane :: build_circuit() {
+	extractor = new Extractor(2*n2, 3*n2, 3*n2);
+	for (int i = 0; i < n2; i++) {
+		extractor->set_syndrome_bit_x(i);
+		extractor->set_syndrome_bit_z(i);
+	}
+
+	//init
+	for (int i = n2; i < 3*n2; i++) {
+		extractor->add_1qubit_depo(1, i, p);
+		extractor->add_1qubit_depo(2, i, p);
+	}
+
+	//transversal gate
+	for (int i = 0; i < 2*n2; i++) {
+		extractor->add_CNOT(0, i, 2, i+n2);
+		extractor->add_2qubit_depo(0, i, 2, i+n2, p);
+		extractor->add_CNOT(1, i+n2, 0, i);
+		extractor->add_2qubit_depo(1, i+n2, 0, i, p);
+	}
+
+	//North
+	
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			extractor->add_CNOT(1, I(n,i,j), 1, I(n,i,j)+n2+n2);  
+			extractor->add_CNOT(2, U(n,i,j)+n2, 2, I(n,i,j));
+		}
+	}
+
+	//West
+	
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			extractor->add_CNOT(1, I(n,i,j), 1, L(n,i,j)+n2);
+			extractor->add_CNOT(2, I(n,i,j)+n2+n2, 2, I(n,i,j));
+		}
+	}
+
+	//East
+	
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			extractor->add_CNOT(1, I(n,i,j), 1, I(n,i,j)+n2);
+			extractor->add_CNOT(2, R(n,i,j)+n2+n2, 2, I(n,i,j));
+		}
+	}
+
+	//South
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			extractor->add_CNOT(1, I(n,i,j), 1, ::D(n,i,j)+n2+n2);
+			extractor->add_CNOT(2, I(n,i,j)+n2, 2, I(n,i,j));
+		}
+	}
+
+}
 
 /*
+ *
 void ToricCodeBareAncilla :: build_circuit() {
 	extractor = new Extractor(2*n2, n2, n2);
 
@@ -373,6 +439,7 @@ void ToricCodeBareAncilla :: build_circuit() {
 		extractor->add_1qubit_depo(0, i, p);
 	}
 
+	{
 	//North
 	
 	for (int i = 0; i < n; i++) {
@@ -415,7 +482,7 @@ void ToricCodeBareAncilla :: build_circuit() {
 			extractor->add_2qubit_depo(0, I(n,i,j), 2, I(n,i,j), p);
 		}
 	}
-
+	}
 	//measure
 	for (int i = 0; i < n2; i++) {
 		extractor->add_phase_flip(1, i, p);
